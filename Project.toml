@@ -1,0 +1,14 @@
+name = "CheckerboardAMDGPU"
+uuid = "9b6bef19-1390-493a-84be-b8214fbbe4b3"
+authors = ["David M. Rogers <predictivestatmech@gmail.com>", "William F Godoy <williamfgc@yahoo.com>", "Benjamin Cohen-Stead <benwcs@gmail.com>"]
+version = "0.1.0"
+
+[deps]
+AMDGPU = "21141c5a-9bdb-4563-92ae-f87d6854732e"
+Checkerboard = "b297549e-c8cb-44e5-9c33-b7e2667db6fc"
+
+[extras]
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[targets]
+test = ["Test"]
