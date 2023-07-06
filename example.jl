@@ -50,6 +50,7 @@ end
 function julia_main(args::Array{String,1})::Cint
 	# must initialize scalars
     L::Int32 = 16
+    M::Int32 = 128
     steps::Int32 = 1
 
     @show args
@@ -57,11 +58,12 @@ function julia_main(args::Array{String,1})::Cint
     # args don't include Julia executable and program
     nargs = size(args)[1]
 
-    if nargs == 2
+    if nargs == 3
 		L = parse(Int32, args[1])
-        steps = parse(Int32, args[2])
+		M = parse(Int32, args[2])
+        steps = parse(Int32, args[3])
     else
-        throw( ArgumentError(string("Usage: example.jl <L> <steps>")) )
+        throw( ArgumentError(string("Usage: example.jl <L> <M> <steps>")) )
     end
 	if steps < 1
 		throw( ArgumentError("Steps must be at least 2") )
@@ -70,16 +72,23 @@ function julia_main(args::Array{String,1})::Cint
 	(N, (; neighbor_table, coshΔτt, sinhΔτt, colors, transposed, inverted)) = setup(L)
 
 	# define M random vectors of length N
-	M = 5
 	print("Time to allocate X")
-	@time X = AMDGPU.ROCArray{Float32,2}(undef, M, N)
+	@time X = AMDGPU.ROCArray{Float32,2}(undef, Int(M), Int(N))
     print("Time to fill X")
     @time AMDGPU.rand!(X)
+
+	print("Time to copy data")
+	@time begin
+		nt = AMDGPU.ROCArray{Int32,2}(neighbor_table)
+		ch = AMDGPU.ROCArray{Float64,1}(coshΔτt)
+		sh = AMDGPU.ROCArray{Float64,1}(sinhΔτt)
+	end
+	color32 = Matrix{Int32}(colors)
 
 	timings = zeros(steps)
 	for i = 1:steps
 		timings[i] = @elapsed CheckerboardAMDGPU.checkerboard_rmul!(
-							X, neighbor_table, coshΔτt, sinhΔτt, colors,
+							X, nt, ch, sh, color32,
 							transposed = transposed, inverted = inverted)
 	end
 	average_time = sum(timings[2:steps]) / (M*(steps - 1))
